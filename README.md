@@ -1,3 +1,33 @@
+# HCLI
+
+A terminal coding assistant for [hcap.ai](https://hcap.ai), based on [jcode](https://github.com/1jehuang/jcode). HCLI opens with API-key setup, defaults to GPT-6 Astra, and includes a full-window chat UI with model details, context usage, and tokens/sec.
+
+## Downloads
+
+[**Download HCLI v0.1.0**](https://github.com/Claude-Reverser/HCLI/releases/tag/hcli-v0.1.0) — direct downloads, no GitHub login required.
+
+| System | x64 / Intel | ARM64 / Apple Silicon |
+| --- | --- | --- |
+| macOS | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-macos-x86_64.tar.gz) | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-macos-aarch64.tar.gz) |
+| Windows | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-windows-x86_64.zip) | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-windows-aarch64.zip) |
+| Linux | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-linux-x86_64.tar.gz) | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-linux-aarch64.tar.gz) |
+| FreeBSD | [Download](https://github.com/Claude-Reverser/HCLI/releases/download/hcli-v0.1.0/hcli-freebsd-x86_64.tar.gz) | — |
+
+Extract the archive for your system, then run its executable from your project directory:
+
+```sh
+/path/to/hcli --no-update --no-selfdev
+```
+
+On Windows, run `hcli.exe --no-update --no-selfdev`. The first launch asks for your hcap.ai API key. Type `/models` to browse models and their capabilities, limits, and pricing.
+
+Packages include SHA-256 checksums, the license, and build metadata. See the [release notes](https://github.com/Claude-Reverser/HCLI/releases/tag/hcli-v0.1.0) for platform requirements and build limitations, and the [HCLI setup guide](docs/hcli-setup.md) for configuration and source builds.
+
+<details>
+<summary>Upstream jcode documentation</summary>
+
+The installers, update commands, and links in this section refer to upstream jcode. For HCLI, use the downloads and setup instructions above.
+
 <div align="center">
 
 # jcode
@@ -954,3 +984,5 @@ Add `--dry-run` to preview what would be removed without deleting anything.
 | **Termux** aarch64 / x86_64 | Supported with `pkg install glibc patchelf` |
 
 </div>
+
+</details>
