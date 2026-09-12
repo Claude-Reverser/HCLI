@@ -486,6 +486,7 @@ impl App {
                                         self.status = ProcessingStatus::Streaming;
                                         text_content.push_str(&text);
                                         self.resume_streaming_tps();
+                                        self.record_hcli_output(&text);
                                         // The buffer queues a CloseReasoning marker ahead of real
                                         // output so any open reasoning region closes in order as
                                         // the paced stream reveals.
@@ -550,6 +551,7 @@ impl App {
                                         }
                                     }
                                     StreamEvent::ToolInputDelta(delta) => {
+                                        self.record_hcli_output(&delta);
                                         self.broadcast_debug(crate::tui::backend::DebugEvent::ToolInput {
                                             delta: delta.clone()
                                         });
@@ -778,6 +780,7 @@ impl App {
                                     }
                                     StreamEvent::ThinkingDelta(thinking_text) => {
                                         self.resume_streaming_tps();
+                                        self.record_hcli_output(&thinking_text);
                                         // Reflect active reasoning in the status line even when the
                                         // provider streams reasoning deltas without an explicit
                                         // ThinkingStart (e.g. OpenRouter, Bedrock) or when the

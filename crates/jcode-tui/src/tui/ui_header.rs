@@ -194,7 +194,7 @@ fn prettify_model_id(model: &str) -> String {
 
 /// Final display name for the header model line: curated pretty names first
 /// (Claude 4.5 Opus, GPT-5.2 Codex), generic title-cased prettification otherwise.
-fn header_model_display_name(model: &str, provider_name: &str) -> String {
+pub(in crate::tui) fn header_model_display_name(model: &str, provider_name: &str) -> String {
     let raw = model.trim();
 
     // Claude family ids ("claude-opus-4-6", "claude-3-5-sonnet-latest",
@@ -850,10 +850,7 @@ fn build_header_lines_with_auth(
         // The native protocol reports the active route, not a complete remote
         // credential inventory. Do not render the laptop's (or an empty)
         // inventory as if it described providers configured on the server.
-        (
-            format!("/login to authenticate on {host}"),
-            Vec::new(),
-        )
+        (format!("/login to authenticate on {host}"), Vec::new())
     } else {
         (
             "/login to add provider".to_string(),
@@ -998,6 +995,9 @@ pub(in crate::tui) fn build_header_sections(
     app: &dyn TuiState,
     width: u16,
 ) -> (Vec<Line<'static>>, Vec<Line<'static>>) {
+    if crate::tui::hcli::enabled() {
+        return crate::tui::hcli::header(app, width);
+    }
     let auth = app.auth_status();
     let active = ActiveCredentialOverrides::from_app(app);
     (

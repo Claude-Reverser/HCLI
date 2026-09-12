@@ -1124,7 +1124,8 @@ pub(super) fn insert_input_text(app: &mut App, text: &str) {
     // After a picker command is fully typed (or completed without a trailing
     // space), the next printable character starts its filter. Insert the
     // separator instead of extending the command token and closing the picker.
-    if at_end
+    if !crate::tui::hcli::enabled()
+        && at_end
         && matches!(app.input.trim_start(), "/login" | "/model" | "/models")
         && !text.starts_with(char::is_whitespace)
     {
@@ -1138,7 +1139,8 @@ pub(super) fn insert_input_text(app: &mut App, text: &str) {
     // Typing the final command character immediately arms picker filtering.
     // Without this, users can keep typing the command token or press Enter
     // without realizing the visible picker is ready to filter.
-    if app.cursor_pos == app.input.len()
+    if !crate::tui::hcli::enabled()
+        && app.cursor_pos == app.input.len()
         && matches!(app.input.trim_start(), "/login" | "/model" | "/models")
     {
         app.input.push(' ');
@@ -2931,7 +2933,10 @@ fn paste_placeholder(content: &str) -> String {
 impl App {
     pub(super) fn handle_key_event(&mut self, event: crossterm::event::KeyEvent) {
         if self.remote_login.is_some() {
-            if matches!(event.kind, crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat) {
+            if matches!(
+                event.kind,
+                crossterm::event::KeyEventKind::Press | crossterm::event::KeyEventKind::Repeat
+            ) {
                 let _ = self.handle_key_press_event(event);
             }
             return;
@@ -3722,6 +3727,7 @@ impl App {
             output_tokens
         };
         if self.streaming.streaming_tps_collect_output {
+            self.streaming.hcli_speed.usage(output_tokens);
             self.streaming.streaming_total_output_tokens += delta;
             if delta > 0 {
                 self.snapshot_streaming_tps();
@@ -3992,6 +3998,7 @@ impl App {
         self.streaming.streaming_total_output_tokens = 0;
         self.streaming.streaming_tps_observed_output_tokens = 0;
         self.streaming.streaming_tps_observed_elapsed = Duration::ZERO;
+        self.streaming.hcli_speed = Default::default();
         self.processing_started = Some(Instant::now());
         self.visible_turn_started = Some(Instant::now());
         self.pending_turn = true;
@@ -4060,6 +4067,7 @@ impl App {
             self.streaming.streaming_total_output_tokens = 0;
             self.streaming.streaming_tps_observed_output_tokens = 0;
             self.streaming.streaming_tps_observed_elapsed = Duration::ZERO;
+            self.streaming.hcli_speed = Default::default();
             self.processing_started = Some(Instant::now());
             if has_combined {
                 if preserve_visible_turn {

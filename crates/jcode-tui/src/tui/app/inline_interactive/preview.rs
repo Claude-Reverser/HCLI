@@ -164,7 +164,7 @@ impl App {
             self.cursor_pos = saved_cursor;
             // Once the model picker is visible, put the cursor in its filter
             // argument so typing narrows models instead of extending `/model`.
-            if preview_opened && append_model_filter_space {
+            if preview_opened && append_model_filter_space && !crate::tui::hcli::enabled() {
                 self.input.push(' ');
                 self.cursor_pos = self.input.len();
             }

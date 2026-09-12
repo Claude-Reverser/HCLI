@@ -27,7 +27,9 @@ pub use super::auth_test::{
     run_auth_test_command, run_auth_test_context_audit_command, run_auth_test_coverage_command,
 };
 pub use menubar::{ensure_menubar_helper_running, run_menubar_command};
-pub(crate) use provider_setup::{ProviderAddOptions, run_provider_add_command};
+pub(crate) use provider_setup::{
+    ProviderAddOptions, configure_provider_profile, run_provider_add_command,
+};
 pub use restart::{
     maybe_run_pending_restart_restore_on_startup, run_restart_clear_command,
     run_restart_restore_command, run_restart_save_command, run_restart_status_command,

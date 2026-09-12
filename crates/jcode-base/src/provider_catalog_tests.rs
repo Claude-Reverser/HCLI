@@ -179,6 +179,7 @@ fn resolved_named_profile_suggests_newest_cached_live_release() {
         "cerebras",
         &[
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "older-model".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -186,6 +187,7 @@ fn resolved_named_profile_suggests_newest_cached_live_release() {
                 created: Some(1_700_000_000),
             },
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "newer-model".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -216,6 +218,7 @@ fn resolved_named_profile_skips_non_chat_models_when_picking_newest_default() {
         "cerebras",
         &[
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "older-chat-model".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -223,6 +226,7 @@ fn resolved_named_profile_skips_non_chat_models_when_picking_newest_default() {
                 created: Some(1_700_000_000),
             },
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "newer-chat-model".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -231,6 +235,7 @@ fn resolved_named_profile_skips_non_chat_models_when_picking_newest_default() {
             },
             // Newest of all, but a non-chat (TTS) model that must be skipped.
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "canopylabs/orpheus-v1-english".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -238,6 +243,7 @@ fn resolved_named_profile_skips_non_chat_models_when_picking_newest_default() {
                 created: Some(1_900_000_000),
             },
             jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: "whisper-large-v3".to_string(),
                 name: String::new(),
                 context_length: None,
@@ -1074,6 +1080,7 @@ fn newest_release_picker_prefers_strongest_tier_over_newest_cheap() {
     crate::env::set_var("JCODE_HOME", temp.path());
 
     let mk = |id: &str, created: u64| ModelInfo {
+        extra: None,
         id: id.to_string(),
         name: String::new(),
         context_length: None,
@@ -1110,6 +1117,7 @@ fn newest_release_picker_uses_recency_within_a_tier() {
     crate::env::set_var("JCODE_HOME", temp.path());
 
     let mk = |id: &str, created: u64| ModelInfo {
+        extra: None,
         id: id.to_string(),
         name: String::new(),
         context_length: None,

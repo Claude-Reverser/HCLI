@@ -735,7 +735,19 @@ impl crate::tui::TuiState for App {
         )
     }
 
+    fn output_tps_is_estimated(&self) -> bool {
+        crate::tui::hcli::enabled()
+            && self
+                .streaming
+                .hcli_speed
+                .sample()
+                .is_some_and(|(_, estimated)| estimated)
+    }
+
     fn output_tps(&self) -> Option<f32> {
+        if crate::tui::hcli::enabled() {
+            return self.streaming.hcli_speed.sample().map(|(speed, _)| speed);
+        }
         if !self.is_processing || !matches!(self.status, ProcessingStatus::Streaming) {
             return None;
         }
@@ -1519,7 +1531,9 @@ impl crate::tui::TuiState for App {
         let auth_method = self.widget_auth_method(route);
         let usage_info = self.widget_usage_info(route, auth_method);
 
-        let tokens_per_second = if matches!(self.status, ProcessingStatus::Streaming) {
+        let tokens_per_second = if crate::tui::hcli::enabled() {
+            self.output_tps()
+        } else if matches!(self.status, ProcessingStatus::Streaming) {
             self.compute_streaming_tps()
         } else {
             None
@@ -1621,6 +1635,7 @@ impl crate::tui::TuiState for App {
             usage_info,
             usage_display_used: crate::config::config().display.usage_display_used(),
             tokens_per_second,
+            tokens_per_second_estimated: self.output_tps_is_estimated(),
             provider_name: if uses_remote_widget_metadata {
                 self.remote_provider_name
                     .clone()

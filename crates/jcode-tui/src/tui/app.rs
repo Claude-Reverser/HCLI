@@ -807,6 +807,7 @@ struct StreamingProgress {
     streaming_tps_observed_output_tokens: u64,
     /// Streaming-only elapsed time corresponding to streaming_tps_observed_output_tokens.
     streaming_tps_observed_elapsed: Duration,
+    hcli_speed: crate::tui::hcli::SpeedMeter,
 }
 
 /// Accumulated session cost and cached per-model pricing.

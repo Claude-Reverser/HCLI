@@ -163,6 +163,7 @@ fn save_test_openrouter_model_cache(namespace: &str, source_api_base: &str, mode
         models: model_ids
             .iter()
             .map(|id| jcode_provider_openrouter::ModelInfo {
+                extra: None,
                 id: (*id).to_string(),
                 name: String::new(),
                 context_length: None,

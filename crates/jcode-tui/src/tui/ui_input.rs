@@ -216,6 +216,10 @@ pub(super) fn draw_command_suggestions_overlay(frame: &mut Frame, app: &dyn TuiS
     if let Some(picker) = app.inline_interactive_state()
         && picker.kind == crate::tui::PickerKind::Model
     {
+        if crate::tui::hcli::enabled() {
+            crate::tui::hcli_menu::models(frame, area, picker, &crate::tui::hcli_menu::catalog());
+            return;
+        }
         // Use the command palette surface, not a separate bordered picker.
         // Keep it above the composer and size the window before building rows
         // so the selected model remains visible even on short terminals.
@@ -235,6 +239,15 @@ pub(super) fn draw_command_suggestions_overlay(frame: &mut Frame, app: &dyn TuiS
     }
     let suggestions = app.command_suggestions();
     if !command_suggestions_active(app, &suggestions) {
+        return;
+    }
+    if crate::tui::hcli::enabled() {
+        crate::tui::hcli_menu::commands(
+            frame,
+            area,
+            &suggestions,
+            app.command_suggestion_selected(),
+        );
         return;
     }
     let mut lines = command_suggestion_lines(app, &suggestions);
@@ -420,6 +433,8 @@ pub(super) fn input_prompt(app: &dyn TuiState) -> (&'static str, Color) {
         ("… ", queued_color())
     } else if app.active_skill().is_some() {
         ("» ", accent_color())
+    } else if crate::tui::hcli::enabled() {
+        ("› ", accent_color())
     } else {
         ("> ", user_color())
     }
@@ -439,6 +454,11 @@ pub(super) fn wrapped_input_line_count(
     area_width: u16,
     next_prompt: usize,
 ) -> usize {
+    let area_width = if crate::tui::hcli::enabled() {
+        area_width.saturating_sub(2)
+    } else {
+        area_width
+    };
     let reserved_width = send_mode_reserved_width(app);
     let prompt_len = input_prompt_len(app, next_prompt);
     let line_width = (area_width as usize).saturating_sub(prompt_len + reserved_width);
@@ -895,7 +915,16 @@ pub(super) fn draw_status(frame: &mut Frame, app: &dyn TuiState, area: Rect, pen
                 let mut status_text =
                     streaming_liveness_label(time_str, stale_secs, stream_message_ended);
                 if let Some(tps) = app.output_tps() {
-                    status_text = format!("{} · {:.1} tps", status_text, tps);
+                    status_text = format!(
+                        "{} · {}{:.1} tps",
+                        status_text,
+                        if app.output_tps_is_estimated() {
+                            "~"
+                        } else {
+                            ""
+                        },
+                        tps
+                    );
                 }
                 if input_tokens > 0 || output_tokens > 0 {
                     status_text = format!(
@@ -2346,7 +2375,11 @@ pub(super) fn draw_right_fact_stack(
     // Standing down here avoids duplicates and keeps its elastic reveal from
     // changing transcript-tail overlays mid-gesture. Users with overscroll off
     // get the compact stack continuously.
-    if app.chat_overscroll_active() || input_area.width == 0 || input_area.height == 0 {
+    if crate::tui::hcli::enabled()
+        || app.chat_overscroll_active()
+        || input_area.width == 0
+        || input_area.height == 0
+    {
         return;
     }
 
@@ -2607,6 +2640,37 @@ pub(super) fn draw_input(
     next_prompt: usize,
     debug_capture: &mut Option<FrameCaptureBuilder>,
 ) -> Option<Position> {
+    let area = if crate::tui::hcli::enabled() && area.width >= 8 && area.height >= 3 {
+        use ratatui::widgets::{Block, BorderType, Borders};
+        let shell = composer_mode(app.input(), app.is_remote_mode()).is_shell();
+        let hint = if area.width < 44 {
+            " Enter "
+        } else if shell {
+            " Enter run · Esc cancel "
+        } else if app.is_processing() && app.queue_mode() {
+            " Enter queue · Ctrl+Enter send "
+        } else if app.is_processing() {
+            " Enter send · Ctrl+Enter queue "
+        } else {
+            " Enter send · Shift+Enter newline "
+        };
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(jcode_tui_style::theme::border_color()))
+            .title(Line::from(Span::styled(
+                if shell { " Shell " } else { " Message " },
+                Style::default().fg(accent_color()),
+            )))
+            .title_bottom(
+                Line::from(Span::styled(hint, Style::default().fg(dim_color()))).right_aligned(),
+            );
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+        inner
+    } else {
+        area
+    };
     let input_text = app.input();
     let cursor_pos = app.cursor_pos();
 
@@ -2792,6 +2856,11 @@ pub(super) fn draw_input(
         )
     } else {
         Paragraph::new(lines.clone())
+    };
+    let paragraph = if crate::tui::hcli::enabled() {
+        paragraph.style(Style::default().bg(jcode_tui_style::theme::user_bg()))
+    } else {
+        paragraph
     };
     frame.render_widget(paragraph, area);
 
@@ -3079,7 +3148,11 @@ pub(crate) fn wrap_input_text<'a>(
         }
 
         if idx == 0 {
-            let num_color = rainbow_prompt_color(0);
+            let num_color = if crate::tui::hcli::enabled() {
+                dim_color()
+            } else {
+                rainbow_prompt_color(0)
+            };
             lines.push(Line::from(vec![
                 Span::styled(num_str.to_string(), Style::default().fg(num_color)),
                 Span::styled(prompt_char.to_string(), Style::default().fg(caret_color)),

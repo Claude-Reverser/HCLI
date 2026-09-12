@@ -3033,7 +3033,8 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
     let hint_line_height = input_ui::input_hint_line_height(app);
     let inline_block_height: u16 = inline_ui_height(app);
     let inline_ui_gap_height: u16 = if inline_block_height > 0 { 1 } else { 0 };
-    let input_height = base_input_height + hint_line_height;
+    let input_height =
+        base_input_height + hint_line_height + if crate::tui::hcli::enabled() { 2 } else { 0 };
 
     if let Some(ref mut capture) = debug_capture {
         capture.render_order.push("prepare_messages".to_string());
@@ -3091,12 +3092,19 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
         return;
     }
 
-    let show_donut = !onboarding_welcome && super::idle_donut_active(app);
+    let show_donut =
+        !crate::tui::hcli::enabled() && !onboarding_welcome && super::idle_donut_active(app);
     let donut_height: u16 = idle_donut_reserved_height(show_donut, input_height);
     let notification_height: u16 = if app.has_notification() { 1 } else { 0 };
     // Elastic overscroll status line revealed when the user scrolls past the
     // bottom of the transcript. Rendered directly below the input line.
-    let overscroll_height: u16 = if app.chat_overscroll_active() { 1 } else { 0 };
+    let overscroll_height: u16 = if crate::tui::hcli::enabled() {
+        2
+    } else if app.chat_overscroll_active() {
+        1
+    } else {
+        0
+    };
     let fixed_height = 1
         + queued_height
         + swarm_strip_height
@@ -3118,7 +3126,7 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
     //
     // When the line is pinned permanently visible by config it is part of the
     // stable layout, not a transient reveal, so it does count here.
-    let stable_fixed_height = if app.chat_overscroll_pinned() {
+    let stable_fixed_height = if crate::tui::hcli::enabled() || app.chat_overscroll_pinned() {
         fixed_height
     } else {
         fixed_height - overscroll_height
@@ -3207,8 +3215,9 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
     };
 
     // Use packed layout when content fits, scrolling layout otherwise
-    let use_packed = terminal_clear_collapsed
-        || (!swarm_page_active && content_height + fixed_height <= available_height);
+    let use_packed = !crate::tui::hcli::enabled()
+        && (terminal_clear_collapsed
+            || (!swarm_page_active && content_height + fixed_height <= available_height));
 
     // Layout: messages (includes header), queued, status, notification, inline UI, gap, input, donut
     // All vertical chunks are within the chat_area (left column).
@@ -3495,7 +3504,7 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
         &mut debug_capture,
     );
 
-    if overscroll_height > 0 {
+    if overscroll_height > 0 && !crate::tui::hcli::enabled() {
         input_ui::draw_overscroll_status(frame, app, chunks[8]);
     }
 
@@ -3508,10 +3517,16 @@ fn draw_inner(frame: &mut Frame, app: &dyn TuiState) {
     let widget_data_start = Instant::now();
     let widget_data = app.info_widget_data();
     let widget_data_elapsed = widget_data_start.elapsed();
+    if crate::tui::hcli::enabled() {
+        crate::tui::hcli::draw_footer(frame, app, &widget_data, chunks[8]);
+    }
     let mut widget_render_ms: Option<f32> = None;
     let mut placements: Vec<info_widget::WidgetPlacement> = Vec::new();
     let widget_bounds = messages_area;
     if app.info_widget_overlays_enabled()
+        && !(crate::tui::hcli::enabled()
+            && app.display_messages().is_empty()
+            && !app.is_processing())
         && !widget_data.is_empty()
         && !show_donut
         && !swarm_page_active

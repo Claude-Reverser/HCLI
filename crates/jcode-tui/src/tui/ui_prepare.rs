@@ -739,6 +739,9 @@ pub(super) fn prepare_messages(
 /// so the same value can be re-applied above the header once messages exist,
 /// keeping the header from jumping when the first prompt is sent.
 fn initial_header_pad_top(height: u16, header_lines: usize) -> usize {
+    if crate::tui::hcli::enabled() {
+        return usize::from(height > 12);
+    }
     let input_reserve = 4;
     let available = (height as usize).saturating_sub(input_reserve);
     available.saturating_sub(header_lines) / 2
@@ -847,7 +850,9 @@ fn prepare_messages_inner(app: &dyn TuiState, width: u16, height: u16) -> Prepar
         };
         let mut wrapped_lines = header_prepared.wrapped_lines.clone();
 
-        if !suggestions.is_empty() {
+        if crate::tui::hcli::enabled() {
+            wrapped_lines.extend(crate::tui::hcli::welcome(width));
+        } else if !suggestions.is_empty() {
             wrapped_lines.push(Line::from(""));
             for (i, (label, prompt)) in suggestions.iter().enumerate() {
                 let is_login = prompt.starts_with('/');

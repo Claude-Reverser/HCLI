@@ -739,6 +739,7 @@ impl App {
     /// next usage report replaces (rather than merges into) the cache
     /// counters. See [`Self::apply_stream_usage_input_report`].
     pub(super) fn mark_stream_usage_call_boundary(&mut self) {
+        self.streaming.hcli_speed.next_call();
         self.streaming.streaming_usage_call_reset_pending = true;
     }
 

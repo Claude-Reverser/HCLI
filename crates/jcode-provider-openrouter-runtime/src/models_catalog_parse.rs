@@ -50,6 +50,10 @@ pub(crate) fn parse_model_info_value(value: &Value) -> Option<ModelInfo> {
         .to_string();
 
     Some(ModelInfo {
+        extra: object
+            .get("extra")
+            .filter(|extra| extra.is_object())
+            .cloned(),
         id,
         name,
         context_length: first_u64_field(
@@ -74,8 +78,18 @@ pub(crate) fn parse_model_info_value(value: &Value) -> Option<ModelInfo> {
                 .get("meta")
                 .and_then(Value::as_object)
                 .and_then(|meta| first_u64_field(meta, &["n_ctx", "n_ctx_train"]))
+        })
+        .or_else(|| {
+            object
+                .get("extra")
+                .and_then(|extra| extra.get("context"))
+                .and_then(value_as_u64)
         }),
-        pricing: parse_model_pricing(object.get("pricing")),
+        pricing: parse_model_pricing(
+            object
+                .get("pricing")
+                .or_else(|| object.get("extra").and_then(|extra| extra.get("pricing"))),
+        ),
         created: object.get("created").and_then(value_as_u64),
     })
 }
@@ -113,11 +127,13 @@ pub(crate) fn parse_model_pricing(value: Option<&Value>) -> ModelPricing {
         prompt: object
             .get("prompt")
             .or_else(|| object.get("input"))
-            .and_then(value_as_pricing_string),
+            .and_then(value_as_pricing_string)
+            .or_else(|| per_million_price(object, "input_per_million_usd")),
         completion: object
             .get("completion")
             .or_else(|| object.get("output"))
-            .and_then(value_as_pricing_string),
+            .and_then(value_as_pricing_string)
+            .or_else(|| per_million_price(object, "output_per_million_usd")),
         input_cache_read: object
             .get("input_cache_read")
             .or_else(|| object.get("cached_input"))
@@ -128,9 +144,52 @@ pub(crate) fn parse_model_pricing(value: Option<&Value>) -> ModelPricing {
     }
 }
 
+// OpenRouter stores USD per token; hcap explicitly quotes USD per million.
+fn per_million_price(object: &serde_json::Map<String, Value>, key: &str) -> Option<String> {
+    if object
+        .get("currency")
+        .and_then(Value::as_str)
+        .is_some_and(|currency| currency != "USD")
+    {
+        return None;
+    }
+    let value = value_as_pricing_string(object.get(key)?)?
+        .parse::<f64>()
+        .ok()?;
+    (value.is_finite() && value >= 0.0).then(|| (value / 1_000_000.0).to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hcap_nested_context_and_per_million_prices_are_parsed() {
+        let models = parse_openai_compatible_models_response(r#"{"data":[{"id":"gpt-6-astra","extra":{"context":1075200,"max_output":131072,"tokens_per_second":null,"pricing":{"currency":"USD","input_per_million_usd":0.4,"output_per_million_usd":2}}}]}"#).unwrap();
+        assert_eq!(models[0].context_length, Some(1_075_200));
+        assert_eq!(models[0].extra.as_ref().unwrap()["max_output"], 131072);
+        assert!(models[0].extra.as_ref().unwrap()["tokens_per_second"].is_null());
+        let input = models[0]
+            .pricing
+            .prompt
+            .as_ref()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap();
+        let output = models[0]
+            .pricing
+            .completion
+            .as_ref()
+            .unwrap()
+            .parse::<f64>()
+            .unwrap();
+        assert!((input - 0.0000004).abs() < 1e-18);
+        assert!((output - 0.000002).abs() < 1e-18);
+        let pricing = parse_model_pricing(Some(
+            &serde_json::json!({"currency":"EUR", "input_per_million_usd":2}),
+        ));
+        assert!(pricing.prompt.is_none());
+    }
 
     #[test]
     fn novita_model_catalog_preserves_names_and_context_limits() {

@@ -110,12 +110,14 @@ impl Drop for ReloadTestEnv {
 #[test]
 fn spawn_lock_serializes_shared_server_bootstrap() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let socket_path = temp.path().join("jcode.sock");
+    let socket_path = temp.path().join("new-runtime").join("hcli.sock");
+    assert!(!socket_path.parent().unwrap().exists());
     let lock_path = spawn_lock_path(&socket_path);
 
     let first = try_acquire_spawn_lock(&lock_path)
         .expect("acquire first lock")
         .expect("first lock should succeed");
+    assert!(socket_path.parent().unwrap().is_dir());
     let second = try_acquire_spawn_lock(&lock_path).expect("acquire second lock");
     assert!(
         second.is_none(),

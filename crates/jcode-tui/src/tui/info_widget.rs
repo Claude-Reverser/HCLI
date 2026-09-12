@@ -627,6 +627,8 @@ pub struct InfoWidgetData {
     pub usage_display_used: bool,
     /// Streaming output tokens per second (approximate)
     pub tokens_per_second: Option<f32>,
+    /// The speed uses a character-based estimate until token usage arrives.
+    pub tokens_per_second_estimated: bool,
     /// Active provider name (openrouter/openai/anthropic/...)
     pub provider_name: Option<String>,
     /// Authentication method used to access the model

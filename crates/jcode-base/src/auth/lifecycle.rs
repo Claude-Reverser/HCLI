@@ -2094,6 +2094,7 @@ mod tests {
             "cerebras",
             &[
                 jcode_provider_openrouter::ModelInfo {
+                    extra: None,
                     id: "llama3.1-8b".to_string(),
                     name: String::new(),
                     context_length: None,
@@ -2101,6 +2102,7 @@ mod tests {
                     created: Some(1_700_000_000),
                 },
                 jcode_provider_openrouter::ModelInfo {
+                    extra: None,
                     id: "qwen-3-235b-a22b-instruct-2507".to_string(),
                     name: String::new(),
                     context_length: None,

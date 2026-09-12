@@ -6,6 +6,7 @@ pub mod auth_test;
 pub mod commands;
 pub mod debug;
 pub mod dispatch;
+pub(crate) mod hcap_setup;
 pub mod hot_exec;
 pub mod login;
 pub mod macos_notification_broker;

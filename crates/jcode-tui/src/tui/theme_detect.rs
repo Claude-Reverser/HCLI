@@ -99,10 +99,17 @@ pub fn init_theme_mode_for_resume(inherited_theme: Option<&str>) -> ThemeMode {
 /// calls it again after `/colors` edits so changes apply without a restart.
 pub fn init_palette() {
     let configured = &crate::config::config().display.colors;
+    let defaults = if crate::tui::hcli::enabled() {
+        crate::tui::hcli::COLORS
+    } else {
+        &[]
+    };
     let (palette, errors) = jcode_tui_style::Palette::from_pairs(
-        configured
-            .iter()
-            .map(|(key, value)| (key.as_str(), value.as_str())),
+        defaults.iter().copied().chain(
+            configured
+                .iter()
+                .map(|(key, value)| (key.as_str(), value.as_str())),
+        ),
     );
     for error in errors {
         crate::logging::warn(&format!("display.colors: {error}"));

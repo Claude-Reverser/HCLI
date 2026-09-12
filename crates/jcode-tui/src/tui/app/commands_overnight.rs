@@ -110,6 +110,7 @@ fn start_visible_overnight_turn(app: &mut App, content: String) {
     app.streaming.streaming_total_output_tokens = 0;
     app.streaming.streaming_tps_observed_output_tokens = 0;
     app.streaming.streaming_tps_observed_elapsed = Duration::ZERO;
+    app.streaming.hcli_speed = Default::default();
     app.processing_started = Some(Instant::now());
     app.visible_turn_started = Some(Instant::now());
     app.pending_turn = true;

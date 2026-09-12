@@ -43,6 +43,9 @@ pub fn known_providers() -> Vec<String> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelInfo {
+    /// Provider-supplied catalog details, retained for model inspection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub extra: Option<serde_json::Value>,
     pub id: String,
     #[serde(default)]
     pub name: String,

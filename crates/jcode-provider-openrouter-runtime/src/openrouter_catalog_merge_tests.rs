@@ -57,6 +57,7 @@ fn named_profile_static_models_survive_live_catalog_refresh() {
     {
         let mut cache = provider.models_cache.blocking_write();
         cache.models = vec![jcode_provider_openrouter::ModelInfo {
+            extra: None,
             id: "vendor-live-model".to_string(),
             name: "vendor live model".to_string(),
             context_length: Some(128_000),

@@ -159,7 +159,15 @@ pub(super) fn render_model_widget(data: &InfoWidgetData, inner: Rect) -> Vec<Lin
         lines.push(Line::from(vec![
             Span::styled("⏱ ", Style::default().fg(rgb(140, 180, 255))),
             Span::styled(
-                format!("{:.1} t/s", tps),
+                format!(
+                    "{}{:.1} t/s",
+                    if data.tokens_per_second_estimated {
+                        "~"
+                    } else {
+                        ""
+                    },
+                    tps
+                ),
                 Style::default().fg(rgb(140, 140, 150)),
             ),
         ]));
@@ -411,6 +419,7 @@ mod tests {
             usage_info: None,
             usage_display_used: false,
             tokens_per_second: None,
+            tokens_per_second_estimated: false,
             provider_name: None,
             auth_method: crate::tui::info_widget::AuthMethod::Unknown,
             upstream_provider: None,

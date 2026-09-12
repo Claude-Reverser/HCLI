@@ -1459,6 +1459,9 @@ impl App {
     /// Get suggestion prompts for new users on the initial empty screen.
     /// Returns (label, prompt_text) pairs. Empty once user is experienced or not authenticated.
     pub fn suggestion_prompts(&self) -> Vec<(String, String)> {
+        if crate::tui::hcli::enabled() && !self.onboarding_preview_mode {
+            return Vec::new();
+        }
         if crate::tui::is_ssh_remote() {
             return Vec::new();
         }

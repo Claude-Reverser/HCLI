@@ -1344,6 +1344,7 @@ mod tests {
                 models: model_ids
                     .iter()
                     .map(|id| jcode_provider_openrouter::ModelInfo {
+                        extra: None,
                         id: (*id).to_string(),
                         name: String::new(),
                         context_length: None,
@@ -1659,6 +1660,7 @@ mod tests {
             models: model_ids
                 .iter()
                 .map(|id| jcode_provider_openrouter::ModelInfo {
+                    extra: None,
                     id: (*id).to_string(),
                     name: String::new(),
                     context_length: None,

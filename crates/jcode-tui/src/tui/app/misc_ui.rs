@@ -121,7 +121,13 @@ impl App {
         self.streaming.streaming_tps_collect_output = keep_collecting_output;
     }
 
+    pub(super) fn record_hcli_output(&mut self, text: &str) {
+        let elapsed = self.current_streaming_tps_elapsed();
+        self.streaming.hcli_speed.output(text, elapsed);
+    }
+
     pub(super) fn reset_streaming_tps(&mut self) {
+        self.streaming.hcli_speed = Default::default();
         self.streaming.streaming_tps_start = None;
         self.streaming.streaming_tps_elapsed = Duration::ZERO;
         self.streaming.streaming_tps_collect_output = false;

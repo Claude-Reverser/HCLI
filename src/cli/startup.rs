@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::process::Command as ProcessCommand;
 
@@ -18,7 +18,11 @@ fn sync_output_style_from_config() {
 pub async fn run() -> Result<()> {
     // Parse once, before startup side effects. Invalid arguments and --help
     // must not harden credential files or create configuration/telemetry state.
-    let args = Args::parse();
+    let mut args = Args::parse();
+    prepare_working_directory(&args)?;
+    super::hcap_setup::initialize_paths()?;
+    // Ask for HCLI credentials before telemetry, provider discovery, or the TUI.
+    super::hcap_setup::prepare_startup(&mut args)?;
     // Credential import must refuse existing stores without normal startup
     // hardening, migrations, telemetry, or provider discovery touching them.
     if args.ssh.is_none()
@@ -27,9 +31,6 @@ pub async fn run() -> Result<()> {
             Some(Command::Auth(super::args::AuthCommand::Import { .. }))
         )
     {
-        if let Some(cwd) = &args.cwd {
-            std::env::set_current_dir(cwd)?;
-        }
         return dispatch::run_main(args).await;
     }
     startup_profile::init();
@@ -295,6 +296,28 @@ pub fn register_external_provider_runtimes() {
     );
 }
 
+fn prepare_working_directory(args: &Args) -> Result<()> {
+    if let Some(cwd) = &args.cwd {
+        std::env::set_current_dir(cwd)
+            .with_context(|| format!("Cannot open working directory {cwd}"))?;
+    } else if args.command.is_none()
+        && let Err(error) = std::env::current_dir()
+    {
+        if error.kind() != std::io::ErrorKind::NotFound {
+            return Err(error).context("Cannot read the shell's working directory");
+        }
+        // A terminal can outlive its directory, notably after an app-bundle
+        // update. Recover before provider setup or any TUI/server startup work.
+        let home = dirs::home_dir().context("Cannot locate a fallback working directory")?;
+        std::env::set_current_dir(&home).context("Cannot open the home directory as a fallback")?;
+        eprintln!(
+            "The shell's working directory no longer exists. Starting in {}.",
+            home.display()
+        );
+    }
+    Ok(())
+}
+
 fn parse_and_prepare_args(args: Args) -> Result<Args> {
     startup_profile::mark("args_parse");
 
@@ -305,7 +328,6 @@ fn parse_and_prepare_args(args: Args) -> Result<Args> {
     output::set_quiet_enabled(args.quiet);
 
     if let Some(cwd) = &args.cwd {
-        std::env::set_current_dir(cwd)?;
         logging::info(&format!("Changed working directory to: {}", cwd));
     }
 

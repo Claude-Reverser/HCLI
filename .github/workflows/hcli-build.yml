@@ -1,0 +1,102 @@
+name: HCLI Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/hcli]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hcli-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JCODE_CI: "1"
+  JCODE_CI_BUILD: "1"
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  native:
+    name: ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact: hcli-linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            artifact: hcli-linux-aarch64
+          - os: macos-15
+            target: aarch64-apple-darwin
+            artifact: hcli-macos-aarch64
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            artifact: hcli-macos-x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact: hcli-windows-x86_64
+            extension: .exe
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            artifact: hcli-windows-aarch64
+            extension: .exe
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: hcli-${{ matrix.target }}
+      - name: Build HCLI
+        run: cargo build --locked --release --no-default-features --bin jcode --target ${{ matrix.target }}
+      - name: Verify executable launches
+        run: |
+          target/${{ matrix.target }}/release/jcode${{ matrix.extension }} --version
+          target/${{ matrix.target }}/release/jcode${{ matrix.extension }} --help
+      - name: Package with checksum
+        run: python3 scripts/package_hcli.py target/${{ matrix.target }}/release/jcode${{ matrix.extension }} ${{ matrix.artifact }} --commit "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
+
+  freebsd:
+    name: hcli-freebsd-x86_64
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify in FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "15.1"
+          usesh: true
+          mem: 6144
+          cpu: 4
+          prepare: pkg install -y rust cmake gmake pkgconf bash git python3
+          run: |
+            set -eu
+            export CARGO_BUILD_JOBS=3 CARGO_INCREMENTAL=0 JCODE_CI=1 JCODE_CI_BUILD=1
+            cargo build --locked --release --no-default-features --bin jcode
+            target/release/jcode --version
+            target/release/jcode --help
+            python3 scripts/package_hcli.py target/release/jcode hcli-freebsd-x86_64 --commit "${{ github.sha }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hcli-freebsd-x86_64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30

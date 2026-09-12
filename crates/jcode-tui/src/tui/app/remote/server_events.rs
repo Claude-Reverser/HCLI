@@ -634,6 +634,7 @@ pub(in crate::tui::app) fn handle_server_event(
                 needs_redraw = true;
             }
             app.resume_streaming_tps();
+            app.record_hcli_output(&text);
             let ops = app.stream_buffer.push_text(&text);
             if app.apply_stream_ops(ops) {
                 needs_redraw = true;
@@ -665,6 +666,7 @@ pub(in crate::tui::app) fn handle_server_event(
                 }
             }
             app.resume_streaming_tps();
+            app.record_hcli_output(&text);
             // The server always streams reasoning; whether to *render* it is
             // this client's choice (mirroring the local-turn path, which gates
             // on the same config). Hidden reasoning still drives the status
@@ -706,6 +708,7 @@ pub(in crate::tui::app) fn handle_server_event(
             eager_stream_redraw
         }
         ServerEvent::ToolInput { delta } => {
+            app.record_hcli_output(&delta);
             remote.handle_tool_input(&delta);
             false
         }
@@ -2300,8 +2303,10 @@ pub(in crate::tui::app) fn handle_server_event(
         }
         ServerEvent::ModelUsageUpdated { route } => {
             for cached in &mut app.remote_model_options {
-                if cached.model == route.model && cached.provider == route.provider
-                    && cached.api_method == route.api_method {
+                if cached.model == route.model
+                    && cached.provider == route.provider
+                    && cached.api_method == route.api_method
+                {
                     cached.usage = route.usage.clone();
                 }
             }

@@ -74,6 +74,9 @@ impl App {
     /// users (no prior onboarding flow this session) so returning users who
     /// re-auth aren't dragged through onboarding.
     pub(super) fn maybe_begin_onboarding_flow_after_login(&mut self) {
+        if crate::tui::hcli::enabled() && self.onboarding_flow.is_none() {
+            return;
+        }
         // If the flow is already running, a successful login means we should
         // leave the in-TUI `Login` phase and continue into model selection.
         if self.onboarding_flow.is_some() {
@@ -98,6 +101,11 @@ impl App {
     /// flow. Once we either start the flow or conclude it shouldn't run, the
     /// guard is set and this becomes a no-op for the rest of the session.
     pub(super) fn maybe_begin_onboarding_flow_on_startup(&mut self) {
+        // HCLI has already completed its focused API-key setup at startup.
+        if crate::tui::hcli::enabled() {
+            self.onboarding_startup_checked = true;
+            return;
+        }
         if self.onboarding_startup_checked {
             return;
         }

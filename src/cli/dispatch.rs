@@ -907,6 +907,9 @@ fn map_transcript_mode(mode: TranscriptModeArg) -> crate::protocol::TranscriptMo
 
 async fn run_default_command(args: Args) -> Result<()> {
     startup_profile::mark("run_main_none_branch");
+    if args.provider_profile.as_deref() == Some("hcap") {
+        super::hcap_setup::refresh_catalog_in_background();
+    }
 
     let explicit_provider_or_model = args.provider != ProviderChoice::Auto
         || args.model.is_some()
@@ -923,7 +926,9 @@ async fn run_default_command(args: Args) -> Result<()> {
         return Ok(());
     }
 
-    let startup_hints = if args.fresh_spawn {
+    // HCLI setup goes straight to the app. The upstream setup hints also
+    // install Jcode desktop launchers and global hotkeys as side effects.
+    let startup_hints = if args.fresh_spawn || args.provider_profile.as_deref() == Some("hcap") {
         None
     } else {
         // One-time: bake per-repo launch hotkeys from session history into config,
@@ -1193,14 +1198,24 @@ impl Drop for SpawnLockGuard {
 
 #[cfg(unix)]
 fn try_acquire_spawn_lock(path: &std::path::Path) -> Result<Option<SpawnLockGuard>> {
+    use anyhow::Context;
     use std::fs::OpenOptions;
     use std::os::fd::AsRawFd;
 
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        crate::storage::ensure_dir(parent).with_context(|| {
+            format!("Cannot create server socket directory {}", parent.display())
+        })?;
+    }
     let file = OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(false)
-        .open(path)?;
+        .open(path)
+        .with_context(|| format!("Cannot open server startup lock {}", path.display()))?;
     let fd = file.as_raw_fd();
     let ret = unsafe { libc::flock(fd, libc::LOCK_EX | libc::LOCK_NB) };
     if ret == 0 {
